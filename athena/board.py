@@ -1,6 +1,6 @@
 import numpy as np
 
-PIECES = ['p', 'n', 'b', 'r', 'q', 'k', 'P', 'N', 'B', 'R', 'Q', 'K']
+from athena import COLORS, PIECES
 
 
 class Bitboard:
@@ -42,5 +42,36 @@ class Board:
     rank = int(pos[1]) - 1
     return rank * 8 + file
   
-  def get_bitboard(self, piece: str) -> Bitboard:
+  def get_piece_bitboard(self, piece: str) -> Bitboard:
+    assert piece in PIECES, f'Invalid piece: {piece}'
     return self.bitboards[piece]
+
+  def get_color_bitboard(self, color: str) -> Bitboard:
+    # depending on the color, create a single bitboard of occupied squares
+    assert color in COLORS, f'Invalid color: {color}'
+    return Bitboard(sum([bb.bb for piece, bb in self.bitboards.items() if piece.islower() == (color == 'b')]))
+
+  @property
+  def to_fen(self) -> str:
+    # Generate a FEN string from the current board state
+    fen = ''
+    for r in range(7, -1, -1):
+      empty = 0
+      for f in range(8):
+        square = r * 8 + f
+        square_occupied = False
+        for p, bb in self.bitboards.items():
+          if bb.get_bit(square):
+            if empty > 0:
+              fen += str(empty)
+              empty = 0
+            fen += p
+            square_occupied = True
+            break
+        if not square_occupied: 
+          empty += 1
+      if empty > 0: 
+        fen += str(empty)
+      fen += '/' if r > 0 else '' 
+    return fen
+        
