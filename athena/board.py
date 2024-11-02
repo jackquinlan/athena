@@ -1,9 +1,9 @@
 import numpy as np
 
-from athena import COLORS, PIECES
-
+from athena.constants import COLORS, PIECES
 
 class Bitboard:
+  # Bitboards use the little endian rank-file mapping
   def __init__(self, bb: np.int64) -> None:
     self.bb = bb
 
@@ -23,7 +23,6 @@ class Bitboard:
         row.append('1' if self.get_bit(idx) else '0')
       board_lines.append(' '.join(row))
     return '\n'.join([*board_lines, '  A B C D E F G H'])
-
 
 class Board:
   def __init__(self, positions: dict[str, str]) -> None:
@@ -74,4 +73,20 @@ class Board:
         fen += str(empty)
       fen += '/' if r > 0 else '' 
     return fen
+  
+  @classmethod
+  def from_fen(cls, fen: str):
+    # Create a board object from a FEN string
+    positions = {}
+    ranks = fen.split('/')
+    for idx, rank in enumerate(ranks):
+      file = 0
+      for piece in rank:
+        if piece.isdigit():
+          file += int(piece)
+        else:
+          positions[chr(ord('a') + file).upper() + str(8 - idx)] = piece
+          file += 1
+    return cls(positions=positions)
+
         
