@@ -7,17 +7,18 @@ class Bitboard:
   def __init__(self, bb: np.int64) -> None:
     self.bb = bb
 
+  def clear_bit(self, i: int) -> None: self.bb &= ~(1 << i)
   def get_bit(self, i: int) -> bool: return (self.bb >> i) & 1
   def set_bit(self, i: int) -> None: self.bb |= 1 << i
 
   @property
-  def empty(self) -> bool: return self.bb == 0
+  def is_empty(self) -> bool: return self.bb == 0
 
-  def __str__(self) -> str:
+  def print_bb(self) -> str:
     board_lines = []
-    for r in range(7, -1, -1):   # Iterate from rank 8 to 1 (reverse)
+    for r in range(7, -1, -1):   
       row = []
-      for f in range(8):         # Iterate from file A to H
+      for f in range(8):         
         if f == 0: row.append(str(r+ 1))
         idx = r * 8 + f
         row.append('1' if self.get_bit(idx) else '0')
@@ -36,6 +37,11 @@ class Board:
       bit[piece].set_bit(self.algebraic_to_index(pos))
     return bit
   
+  def index_to_algebraic(self, idx: int) -> str:
+    file = chr(ord('a') + idx % 8)
+    rank = str(idx // 8 + 1)
+    return file + rank
+
   def algebraic_to_index(self, pos: str) -> int:
     file = ord(pos[0].lower()) - ord('a')
     rank = int(pos[1]) - 1
@@ -49,9 +55,20 @@ class Board:
     # depending on the color, create a single bitboard of occupied squares
     assert color in COLORS, f'Invalid color: {color}'
     return Bitboard(sum([bb.bb for piece, bb in self.bitboards.items() if piece.islower() == (color == 'b')]))
+  
+  def get_piece_color(self, piece: str) -> str: 
+    return 'b' if piece.islower() else 'w'
 
   @property
-  def to_fen(self) -> str:
+  def occupied(self) -> Bitboard:
+    return Bitboard(self.get_color_bitboard('w').bb | self.get_color_bitboard('b').bb)
+  
+  @property
+  def empty(self) -> Bitboard:
+    return Bitboard(~self.occupied.bb)
+
+  @property
+  def fen(self) -> str:
     # Generate a FEN string from the current board state
     fen = ''
     for r in range(7, -1, -1):

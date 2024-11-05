@@ -7,4 +7,3 @@ class Game:
 
   def start(self):
     self.engine.pseudo_legal_moves(self.start_position)
-    return

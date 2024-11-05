@@ -1,47 +1,38 @@
 from dataclasses import dataclass
 
-from athena.board import Board 
-from athena.constants import DEFAULT_POSITION
+from athena.position import Position
+from athena.move import Move
+from athena.board import Bitboard
 
-@dataclass
-class Move:
-  start: str
-  end: str
-  en_passant: str
-  castle: bool
-  capture: bool
-
-  @property
-  def to_algebraic(self) -> str: 
-    return 
-
-@dataclass
-class Position:
-  board: Board = Board(DEFAULT_POSITION)
-  color: str = 'w'
-  castle_rights: str = 'KQkq'
-  en_passant: str = '-'
-  halfmove_clock: int = 0
-  fullmove_count: int = 1
-
-  @property
-  def to_fen(self) -> str: 
-    return f'{self.board.to_fen} {self.color} {self.castle_rights} {self.en_passant} {self.halfmove_clock} {self.fullmove_count}'
-
-  @classmethod
-  def from_fen(cls, fen: str):
-    return cls(
-      board=Board.from_fen(fen.split()[0]),
-      color=fen.split()[1],
-      castle_rights=fen.split()[2],
-      en_passant=fen.split()[3],
-      halfmove_clock=int(fen.split()[4]),
-      fullmove_count=int(fen.split()[5]),
-    )
+def trailing_zeros(n: int) -> int: return (n & -n).bit_length() - 1
 
 class Engine:
+  def __init__(self) -> None:
+    return
 
   def pseudo_legal_moves(self, pos: Position) -> list[Move]:
+    # Generate a list of pseudo-legal moves for the current position
+    moves: list[Move] = []
+    for p, bb in pos.board.bitboards.items():
+      if pos.color != pos.board.get_piece_color(p) or bb.is_empty: continue # only generate moves for current color and if the piece exists
+      # generate pawn moves
+      if p.lower() == 'p':
+        moves.extend(self.pawn_moves(pos))
+    return moves
+  
+  def pawn_moves(self, pos: Position) -> list[Move]:
     moves = []
-    print(pos.to_fen)
+    pawns = pos.board.get_piece_bitboard('P' if pos.color == 'w' else 'p')
+    empty = pos.board.empty
+    
+    single_pushes = (pawns.bb << 8) & empty.bb if pos.color == 'w' else (pawns.bb >> 8) & empty.bb
+    moves.extend(self.extract_moves(Bitboard(single_pushes), 8))
+    return moves
+  
+  def extract_moves(self, bitboard: Bitboard, offset: int) -> list[Move]:
+    moves = []
+    while not bitboard.is_empty:
+      index = trailing_zeros(bitboard.bb)
+      moves.append(Move(index-offset, index))
+      bitboard.clear_bit(index)
     return moves
